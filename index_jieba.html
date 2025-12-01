@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Jieba.js (HMM implemented)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .warning { background: #fff3cd; color: #856404; }
+        .error { background: #f8d7da; color: #721c24; }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            font-size: 16px; 
+            box-sizing: border-box;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        button { 
+            background: #28a745; 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            margin: 10px 5px 10px 0; 
+        }
+        button:hover { background: #218838; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border: 1px solid #dee2e6;
+            border-radius: 5px; 
+            margin-top: 20px; 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+            font-family: 'Courier New', monospace; 
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .console-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        h1 { color: #333; margin-top: 0; }
+        h3 { color: #555; margin-top: 25px; }
+		
+		.folder-structure pre {
+    background: #2d3748;
+    color: #68d391;
+    padding: 15px 20px;
+    border-radius: 8px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-x: auto;
+    margin: 15px 0;
+    border-left: 4px solid #68d391;
+}
+    </style>
+</head>
+<body>
+<div class="test-box">
+    <h1>🧪 Test Jieba.js (HMM Version - 29 Nov 2025)</h1>
+    
+    <div class="folder-structure">
+        <pre>
+		ROOT/
+		└── your-project-folder/
+			├── jieba_hmm.html      ← Opens in browser
+			└── scripts_jieba/
+				├── require.js      ← Loaded by HTML
+				├── jieba.js        ← Main module
+				├── finalseg.js     ← HMM module
+				├── data/
+				│   └── dictionary.js
+				└── finalseg/
+					├── prob_start.js
+					├── prob_trans.js
+					└── prob_emit.js
+        </pre>
+    </div>
+    
+    <div id="loadStatus" class="status warning">
+        ⏳ Loading jieba.js using RequireJS...
+    </div>
+</div>
+
+        <h3>Test Chinese Word Segmentation:</h3>
+        
+        <input type="text" 
+               id="testInput" 
+               placeholder="输入中文进行测试..." 
+               value="人工智能技术发展迅速，深度学习改变了世界">
+        
+        <button id="testBtn" onclick="testSegmentation()" disabled>
+            ✂️ Test Segmentation
+        </button>
+
+        <div id="result" class="result" style="display:none;"></div>
+
+        <h3>📋 Console Logs:</h3>
+        <div id="consoleLogs" class="console-log"></div>
+    </div>
+
+    <script src="scripts_jieba/require.js"></script>
+    <script>
+        let jiebaModule = null;
+        const logDiv = document.getElementById('consoleLogs');
+        const statusDiv = document.getElementById('loadStatus');
+        const testBtn = document.getElementById('testBtn');
+
+        // Capture console logs
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            logDiv.innerHTML += args.join(' ') + '<br>';
+            logDiv.scrollTop = logDiv.scrollHeight;
+        };
+
+        console.log('🔍 Starting jieba.js load test...');
+        console.log('📁 Expected structure: scripts_jieba/jieba.js, scripts_jieba/data/dictionary.js');
+
+        requirejs.config({
+            baseUrl: 'scripts_jieba',
+            paths: {
+                'data': 'data'
+            }
+        });
+
+        console.log('⚙️ RequireJS configured');
+
+        require(['jieba'], function(jieba) {
+            console.log('✅ Jieba module loaded!', jieba);
+            
+            if (jieba && typeof jieba.cut === 'function') {
+                jiebaModule = jieba;
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ SUCCESS: Jieba.js loaded and ready!';
+                testBtn.disabled = false;
+                console.log('🎉 Jieba is ready for use!');
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ FAILED: Jieba loaded but cut() function not found';
+                console.error('❌ Invalid jieba module:', jieba);
+            }
+        }, function(err) {
+            console.error('❌ RequireJS error:', err);
+            statusDiv.className = 'status error';
+            statusDiv.textContent = '❌ FAILED: ' + err.requireType + ' - ' + err.requireModules;
+        });
+
+        function testSegmentation() {
+            const input = document.getElementById('testInput').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!input.trim()) {
+                alert('请输入一些文本 (Please enter some text)');
+                return;
+            }
+
+            if (!jiebaModule) {
+                alert('Jieba is not loaded yet!');
+                return;
+            }
+
+            try {
+                console.log('🔪 Cutting text:', input);
+                const segments = jiebaModule.cut(input);
+                console.log('✅ Result:', segments);
+
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+<strong>📊 Segmentation Result:</strong><br><br>
+<strong>Input:</strong> ${input}<br><br>
+<strong>Output:</strong> ${segments.join(' | ')}<br><br>
+<strong>Array:</strong> ${JSON.stringify(segments, null, 2)}
+                `;
+            } catch (error) {
+                console.error('❌ Error during segmentation:', error);
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = '❌ Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
